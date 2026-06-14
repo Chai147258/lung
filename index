@@ -1,0 +1,506 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, X, Search, Download, Eye, EyeOff } from 'lucide-react';
+
+const ERPModularApp = () => {
+  const [currentModule, setCurrentModule] = useState('customer');
+  const [allData, setAllData] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingItem, setEditingItem] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [showDetails, setShowDetails] = useState(null);
+
+  // Module Configuration
+  const modules = {
+    customer: {
+      label: '👥 ลูกค้า',
+      color: 'blue',
+      fields: {
+        code: { label: 'รหัส', type: 'text', required: true },
+        name: { label: 'ชื่อลูกค้า', type: 'text', required: true },
+        phone: { label: 'โทรศัพท์', type: 'tel' },
+        email: { label: 'อีเมล', type: 'email' },
+        creditterm: { label: 'เงื่อนไขเครดิต', type: 'text' },
+        address: { label: 'ที่อยู่', type: 'textarea' },
+        status: { label: 'สถานะ', type: 'select', options: ['Active', 'Inactive'] }
+      }
+    },
+    product: {
+      label: '📦 สินค้า',
+      color: 'green',
+      fields: {
+        sku: { label: 'SKU', type: 'text', required: true },
+        name: { label: 'ชื่อสินค้า', type: 'text', required: true },
+        category: { label: 'หมวดหมู่', type: 'text' },
+        cost: { label: 'ต้นทุน', type: 'number' },
+        price: { label: 'ราคาขาย', type: 'number' },
+        minstock: { label: 'สต็อกขั้นต่ำ', type: 'number' },
+        status: { label: 'สถานะ', type: 'select', options: ['Active', 'Inactive'] }
+      }
+    },
+    quotation: {
+      label: '📋 ใบเสนอราคา',
+      color: 'purple',
+      fields: {
+        quotationNo: { label: 'เลขที่ใบเสนอ', type: 'text', required: true },
+        date: { label: 'วันที่', type: 'date' },
+        customerCode: { label: 'รหัสลูกค้า', type: 'text' },
+        amount: { label: 'ยอดก่อนภาษี', type: 'number' },
+        vat: { label: 'ภาษีมูลค่าเพิ่ม (7%)', type: 'number' },
+        total: { label: 'รวมสุทธิ', type: 'number' },
+        status: { label: 'สถานะ', type: 'select', options: ['Draft', 'Sent', 'Approved', 'Rejected'] }
+      }
+    },
+    salesorder: {
+      label: '🛒 ใบสั่งซื้อ',
+      color: 'yellow',
+      fields: {
+        orderNo: { label: 'เลขที่ใบสั่ง', type: 'text', required: true },
+        quotationNo: { label: 'เลขที่ใบเสนอราคา', type: 'text' },
+        customerCode: { label: 'รหัสลูกค้า', type: 'text' },
+        orderDate: { label: 'วันที่สั่ง', type: 'date' },
+        deliveryDate: { label: 'วันที่ส่ง', type: 'date' },
+        total: { label: 'รวมทั้งสิ้น', type: 'number' },
+        status: { label: 'สถานะ', type: 'select', options: ['Draft', 'Approved', 'In Progress', 'Completed', 'Cancelled'] }
+      }
+    },
+    delivery: {
+      label: '📦 ใบส่งของ',
+      color: 'indigo',
+      fields: {
+        doNo: { label: 'เลขที่ใบส่ง', type: 'text', required: true },
+        orderNo: { label: 'เลขที่ใบสั่ง', type: 'text' },
+        date: { label: 'วันที่ส่ง', type: 'date' },
+        deliveredBy: { label: 'ผู้ส่ง', type: 'text' },
+        receivedBy: { label: 'ผู้รับ', type: 'text' },
+        status: { label: 'สถานะ', type: 'select', options: ['Pending', 'In Transit', 'Delivered', 'Returned'] }
+      }
+    },
+    invoice: {
+      label: '💰 ใบแจ้งหนี้',
+      color: 'red',
+      fields: {
+        invoiceNo: { label: 'เลขที่ใบแจ้งหนี้', type: 'text', required: true },
+        doNo: { label: 'เลขที่ใบส่ง', type: 'text' },
+        customerCode: { label: 'รหัสลูกค้า', type: 'text' },
+        date: { label: 'วันที่', type: 'date' },
+        dueDate: { label: 'วันที่ครบกำหนด', type: 'date' },
+        amount: { label: 'ยอดรวม', type: 'number' },
+        vat: { label: 'ภาษี', type: 'number' },
+        total: { label: 'รวมสุทธิ', type: 'number' },
+        status: { label: 'สถานะ', type: 'select', options: ['Paid', 'Unpaid', 'Partial', 'Overdue'] }
+      }
+    },
+    stockin: {
+      label: '📥 รับสินค้า',
+      color: 'emerald',
+      fields: {
+        id: { label: 'รหัส', type: 'text', required: true },
+        productCode: { label: 'รหัสสินค้า', type: 'text' },
+        reference: { label: 'เลขอ้างอิง', type: 'text' },
+        qty: { label: 'จำนวน', type: 'number' },
+        cost: { label: 'ต้นทุน', type: 'number' },
+        date: { label: 'วันที่', type: 'date' }
+      }
+    },
+    workorder: {
+      label: '🔧 ใบสั่งงาน',
+      color: 'orange',
+      fields: {
+        woNo: { label: 'เลขที่ใบสั่ง', type: 'text', required: true },
+        orderNo: { label: 'เลขที่ใบสั่งซื้อ', type: 'text' },
+        customerCode: { label: 'รหัสลูกค้า', type: 'text' },
+        jobType: { label: 'ประเภทงาน', type: 'select', options: ['Installation', 'Maintenance', 'Repair', 'Testing', 'Inspection'] },
+        assignedTo: { label: 'มอบหมายให้', type: 'text' },
+        startDate: { label: 'วันเริ่มงาน', type: 'date' },
+        endDate: { label: 'วันสิ้นสุด', type: 'date' },
+        status: { label: 'สถานะ', type: 'select', options: ['Open', 'In Progress', 'Pending', 'Completed', 'Cancelled'] }
+      }
+    },
+    employee: {
+      label: '👨‍💼 พนักงาน',
+      color: 'cyan',
+      fields: {
+        code: { label: 'รหัสพนักงาน', type: 'text', required: true },
+        firstName: { label: 'ชื่อ', type: 'text', required: true },
+        lastName: { label: 'นามสกุล', type: 'text' },
+        position: { label: 'ตำแหน่ง', type: 'text' },
+        department: { label: 'แผนก', type: 'text' },
+        phone: { label: 'โทรศัพท์', type: 'tel' },
+        email: { label: 'อีเมล', type: 'email' },
+        status: { label: 'สถานะ', type: 'select', options: ['Active', 'Probation', 'Resigned', 'Retired'] }
+      }
+    },
+    supplier: {
+      label: '🏭 ผู้จัดจำหน่าย',
+      color: 'pink',
+      fields: {
+        code: { label: 'รหัส', type: 'text', required: true },
+        name: { label: 'ชื่อผู้จัดจำหน่าย', type: 'text', required: true },
+        contact: { label: 'ชื่อติดต่อ', type: 'text' },
+        phone: { label: 'โทรศัพท์', type: 'tel' },
+        email: { label: 'อีเมล', type: 'email' },
+        address: { label: 'ที่อยู่', type: 'textarea' },
+        status: { label: 'สถานะ', type: 'select', options: ['Active', 'Inactive'] }
+      }
+    }
+  };
+
+  // Initialize data from localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem('erpData');
+    if (savedData) {
+      setAllData(JSON.parse(savedData));
+    } else {
+      // Default data
+      const defaultData = {
+        customer: [
+          { id: 1, code: 'CST001', name: 'บริษัท อมตะอุตสาหกรรม', phone: '038-999888', email: 'contact@amata.com', creditterm: '30 Days', address: 'ชลบุรี', status: 'Active' },
+          { id: 2, code: 'CST002', name: 'บจก. ไทยรุ่งเรือง', phone: '02-3334444', email: 'info@thairung.com', creditterm: '45 Days', address: 'กรุงเทพ', status: 'Active' }
+        ],
+        product: [
+          { id: 1, sku: 'IT-NB-001', name: 'Notebook ASUS ExpertBook', category: 'IT', cost: 18500, price: 24900, minstock: 5, status: 'Active' },
+          { id: 2, sku: 'CAM-IP-01', name: 'IP Camera Hikvision 4MP', category: 'Camera', cost: 1200, price: 1890, minstock: 15, status: 'Active' }
+        ],
+        quotation: [],
+        salesorder: [],
+        delivery: [],
+        invoice: [],
+        stockin: [],
+        workorder: [],
+        employee: [
+          { id: 1, code: 'EMP001', firstName: 'สิทธิชัย', lastName: 'แสงจู', position: 'เจ้าของ', department: 'Administration', phone: '081-000000', email: 'owner@company.com', status: 'Active' },
+          { id: 2, code: 'EMP002', firstName: 'ณัฐพงษ์', lastName: 'กิจการ', position: 'Manager', department: 'Sales', phone: '081-111111', email: 'manager@company.com', status: 'Active' }
+        ],
+        supplier: []
+      };
+      setAllData(defaultData);
+      localStorage.setItem('erpData', JSON.stringify(defaultData));
+    }
+  }, []);
+
+  // Save to localStorage
+  const saveData = (newData) => {
+    setAllData(newData);
+    localStorage.setItem('erpData', JSON.stringify(newData));
+  };
+
+  // Filter data
+  const getFilteredData = () => {
+    const data = allData[currentModule] || [];
+    if (!searchTerm) return data;
+    return data.filter(item =>
+      Object.values(item).some(val =>
+        String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  };
+
+  // Add/Edit item
+  const handleSaveItem = () => {
+    const module = modules[currentModule];
+    const requiredFields = Object.keys(module.fields).filter(k => module.fields[k].required);
+    
+    // Validate required fields
+    if (!requiredFields.every(field => formData[field])) {
+      alert('กรุณากรอกข้อมูลที่จำเป็น');
+      return;
+    }
+
+    let newData = { ...allData };
+    
+    if (editingItem !== null) {
+      // Edit
+      newData[currentModule] = newData[currentModule].map((item, idx) =>
+        idx === editingItem ? { ...item, ...formData } : item
+      );
+    } else {
+      // Add
+      const newItem = {
+        id: (newData[currentModule] || []).length + 1,
+        ...formData
+      };
+      newData[currentModule] = [...(newData[currentModule] || []), newItem];
+    }
+    
+    saveData(newData);
+    resetForm();
+  };
+
+  // Delete item
+  const handleDeleteItem = (index) => {
+    if (window.confirm('ต้องการลบรายการนี้หรือไม่?')) {
+      const newData = { ...allData };
+      newData[currentModule] = newData[currentModule].filter((_, idx) => idx !== index);
+      saveData(newData);
+    }
+  };
+
+  // Edit item
+  const handleEditItem = (index, item) => {
+    setEditingItem(index);
+    setFormData(item);
+    setShowForm(true);
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({});
+    setEditingItem(null);
+    setShowForm(false);
+  };
+
+  // Export CSV
+  const handleExportCSV = () => {
+    const data = getFilteredData();
+    if (data.length === 0) {
+      alert('ไม่มีข้อมูลที่จะส่งออก');
+      return;
+    }
+
+    const module = modules[currentModule];
+    const headers = Object.keys(module.fields);
+    const csv = [
+      headers.join(','),
+      ...data.map(item =>
+        headers.map(h => `"${String(item[h] || '').replace(/"/g, '""')}"`).join(',')
+      )
+    ].join('\n');
+
+    const link = document.createElement('a');
+    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    link.download = `${currentModule}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
+  const filteredData = getFilteredData();
+  const moduleConfig = modules[currentModule];
+  const colorClasses = {
+    blue: 'border-blue-500 bg-blue-50',
+    green: 'border-green-500 bg-green-50',
+    purple: 'border-purple-500 bg-purple-50',
+    yellow: 'border-yellow-500 bg-yellow-50',
+    indigo: 'border-indigo-500 bg-indigo-50',
+    red: 'border-red-500 bg-red-50',
+    emerald: 'border-emerald-500 bg-emerald-50',
+    orange: 'border-orange-500 bg-orange-50',
+    cyan: 'border-cyan-500 bg-cyan-50',
+    pink: 'border-pink-500 bg-pink-50'
+  };
+
+  const textColorClasses = {
+    blue: 'text-blue-700',
+    green: 'text-green-700',
+    purple: 'text-purple-700',
+    yellow: 'text-yellow-700',
+    indigo: 'text-indigo-700',
+    red: 'text-red-700',
+    emerald: 'text-emerald-700',
+    orange: 'text-orange-700',
+    cyan: 'text-cyan-700',
+    pink: 'text-pink-700'
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 shadow-lg">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">🏢 ERP Modular System</h1>
+          <p className="text-purple-100">PK Plus - ระบบจัดการองค์กรแบบครบวงจร</p>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="bg-white shadow-md sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+            {Object.entries(modules).map(([key, module]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setCurrentModule(key);
+                  setSearchTerm('');
+                  setShowForm(false);
+                }}
+                className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
+                  currentModule === key
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {module.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Card */}
+        <div className={`bg-white rounded-xl shadow-lg border-l-4 ${colorClasses[moduleConfig.color]}`}>
+          {/* Action Bar */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row gap-4 md:items-center">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="ค้นหา..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  setEditingItem(null);
+                  setFormData({});
+                  setShowForm(true);
+                }}
+                className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition"
+              >
+                <Plus size={20} /> เพิ่มใหม่
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition"
+              >
+                <Download size={20} /> Export
+              </button>
+            </div>
+          </div>
+
+          {/* Form Modal */}
+          {showForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-96 overflow-y-auto">
+                <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-4 flex justify-between items-center text-white border-b">
+                  <h2 className="text-xl font-bold">
+                    {editingItem !== null ? '✏️ แก้ไข' : '➕ เพิ่มใหม่'} {moduleConfig.label}
+                  </h2>
+                  <button onClick={resetForm} className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(moduleConfig.fields).map(([key, field]) => (
+                    <div key={key} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                      </label>
+                      {field.type === 'textarea' ? (
+                        <textarea
+                          value={formData[key] || ''}
+                          onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                          rows="3"
+                          className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                        />
+                      ) : field.type === 'select' ? (
+                        <select
+                          value={formData[key] || ''}
+                          onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                          className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                        >
+                          <option value="">-- เลือก --</option>
+                          {field.options.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={formData[key] || ''}
+                          onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                          className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="sticky bottom-0 bg-gray-100 px-6 py-4 flex justify-end gap-3 border-t">
+                  <button
+                    onClick={resetForm}
+                    className="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-semibold transition"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleSaveItem}
+                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
+                  >
+                    {editingItem !== null ? '💾 บันทึกการแก้ไข' : '➕ เพิ่มใหม่'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Data Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-100 border-b-2 border-gray-300">
+                  {Object.entries(moduleConfig.fields).map(([key, field]) => (
+                    <th key={key} className="px-4 py-3 text-left font-bold text-gray-700">
+                      {field.label}
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-center font-bold text-gray-700">การดำเนิน</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.length > 0 ? (
+                  filteredData.map((item, idx) => (
+                    <tr key={idx} className="border-b hover:bg-gray-50 transition">
+                      {Object.keys(moduleConfig.fields).map(key => (
+                        <td key={key} className="px-4 py-3 text-gray-600">
+                          {typeof item[key] === 'number' && 
+                          (key.includes('price') || key.includes('cost') || key.includes('amount') || key.includes('total') || key.includes('vat'))
+                            ? `฿${item[key]?.toLocaleString()}`
+                            : String(item[key] || '-')}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 flex gap-2 justify-center">
+                        <button
+                          onClick={() => handleEditItem(idx, item)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded transition"
+                          title="แก้ไข"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(idx)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded transition"
+                          title="ลบ"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={Object.keys(moduleConfig.fields).length + 1} className="px-4 py-8 text-center text-gray-400">
+                      ไม่มีข้อมูล {moduleConfig.label}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Record Count */}
+          <div className="px-6 py-4 bg-gray-50 border-t text-sm text-gray-600 font-semibold">
+            📊 แสดง <span className="text-purple-600">{filteredData.length}</span> / <span className="text-indigo-600">{allData[currentModule]?.length || 0}</span> รายการ
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ERPModularApp;
