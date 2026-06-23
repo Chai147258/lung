@@ -1,0 +1,7 @@
+📦 ดาวน์โหลดจาก outputs folder:
+├── ERP_V3_Webapp.html          ← Main App
+├── package.json                 ← npm config
+├── vercel.json                  ← Vercel config
+├── .gitignore                   ← Git ignore
+├── README.md                    ← Documentation
+└── 01_DEPLOY_VERCEL_GUIDE.md   ← Full guide
