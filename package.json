@@ -1,4 +1,27 @@
 {
+  "name": "lungchai-erp-v3",
+  "version": "3.0.0",
+  "description": "ERP V3 Comprehensive System - ลุงชัย ไชโย พานิช",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Development mode - open public/index.html in browser'",
+    "build": "echo 'Static build - no build step needed'",
+    "start": "echo 'Use Vercel deployment'"
+  },
+  "keywords": [
+    "erp",
+    "erp-system",
+    "pos",
+    "inventory",
+    "sales",
+    "thailand"
+  ],
+  "author": "ลุงชัย ไชโย พานิช",
+  "license": "MIT"
+}
+
+{
   "name": "pk-plus-erp-backend",
   "version": "3.1.0",
   "description": "PK Plus ERP V3 Production Backend - Node.js + Express + Supabase with Security Hardening",
